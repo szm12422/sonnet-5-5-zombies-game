@@ -135,16 +135,36 @@ function installStyle(): HTMLStyleElement {
       pointer-events: auto; touch-action: none;
     }
     .mobile-control:active { transform: scale(.94); background: rgba(70, 145, 165, .32); }
+    .mobile-control.is-active {
+      border-color: rgba(110, 220, 242, .9);
+      background: rgba(50, 150, 175, .52);
+      color: #fff;
+      box-shadow: inset 0 0 20px rgba(88, 215, 245, .18), 0 0 14px rgba(60, 205, 235, .25);
+    }
+    .mobile-left-combat {
+      position: absolute;
+      left: max(18px, calc(env(safe-area-inset-left) + 12px));
+      top: clamp(230px, 45vh, 330px);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .mobile-left-combat .mobile-control { position: static; }
     .mobile-fire {
-      right: max(18px, calc(env(safe-area-inset-right) + 12px));
-      bottom: max(58px, calc(env(safe-area-inset-bottom) + 50px));
-      width: 82px; height: 82px;
-      border-color: rgba(235, 164, 94, .55);
+      width: 74px; height: 74px;
+      border-color: rgba(235, 164, 94, .62);
       font-size: 12px;
     }
-    .mobile-ads { right: max(112px, calc(env(safe-area-inset-right) + 106px)); bottom: max(86px, calc(env(safe-area-inset-bottom) + 78px)); width: 58px; height: 58px; }
+    .mobile-ads { width: 60px; height: 60px; }
     .mobile-jump { right: max(25px, calc(env(safe-area-inset-right) + 19px)); bottom: max(155px, calc(env(safe-area-inset-bottom) + 147px)); width: 54px; height: 54px; }
-    .mobile-interact { right: max(105px, calc(env(safe-area-inset-right) + 99px)); bottom: max(158px, calc(env(safe-area-inset-bottom) + 150px)); width: 58px; height: 58px; }
+    .mobile-interact {
+      right: max(105px, calc(env(safe-area-inset-right) + 99px));
+      bottom: max(158px, calc(env(safe-area-inset-bottom) + 150px));
+      width: 62px; height: 62px;
+      border-color: rgba(110, 205, 224, .58);
+      font-size: 15px;
+    }
     .mobile-reload { right: max(24px, calc(env(safe-area-inset-right) + 18px)); bottom: max(222px, calc(env(safe-area-inset-bottom) + 214px)); }
     .mobile-grenade { right: max(88px, calc(env(safe-area-inset-right) + 82px)); bottom: max(230px, calc(env(safe-area-inset-bottom) + 222px)); }
     .mobile-plate { right: max(151px, calc(env(safe-area-inset-right) + 145px)); bottom: max(225px, calc(env(safe-area-inset-bottom) + 217px)); }
@@ -178,8 +198,9 @@ function installStyle(): HTMLStyleElement {
     }
     @media (max-height: 430px) {
       .mobile-joystick { width: 116px; height: 116px; }
-      .mobile-fire { width: 72px; height: 72px; bottom: max(38px, calc(env(safe-area-inset-bottom) + 32px)); }
-      .mobile-ads { bottom: max(66px, calc(env(safe-area-inset-bottom) + 60px)); }
+      .mobile-left-combat { top: clamp(190px, 43vh, 230px); gap: 8px; }
+      .mobile-fire { width: 66px; height: 66px; }
+      .mobile-ads { width: 54px; height: 54px; }
       .mobile-jump { bottom: max(130px, calc(env(safe-area-inset-bottom) + 124px)); }
       .mobile-interact { bottom: max(135px, calc(env(safe-area-inset-bottom) + 129px)); }
       .mobile-reload, .mobile-grenade, .mobile-plate { bottom: max(194px, calc(env(safe-area-inset-bottom) + 188px)); }
@@ -304,9 +325,10 @@ export function installMobileActivity(game: Game, uiRoot: HTMLElement): () => vo
   joystick.addEventListener('pointercancel', releaseStick);
 
   const fire = button('FIRE', 'mobile-fire', 'Fire');
-  const ads = button('ADS', 'mobile-ads', 'Aim down sights');
+  const ads = button('ADS', 'mobile-ads', 'Toggle aim down sights');
+  ads.setAttribute('aria-pressed', 'false');
   const jump = button('JUMP', 'mobile-jump', 'Jump');
-  const interact = button('USE', 'mobile-interact', 'Interact');
+  const interact = button('E', 'mobile-interact', 'Interact');
   const reload = button('R', 'mobile-reload', 'Reload');
   const grenade = button('G', 'mobile-grenade', 'Grenade');
   const plate = button('ARM', 'mobile-plate', 'Apply armor plate');
@@ -315,8 +337,19 @@ export function installMobileActivity(game: Game, uiRoot: HTMLElement): () => vo
   const map = button('MAP', 'mobile-map', 'Tactical map');
   const pause = button('Ⅱ', 'mobile-pause', 'Pause');
 
+  const leftCombat = document.createElement('div');
+  leftCombat.className = 'mobile-left-combat';
+  leftCombat.append(ads, fire);
+
   bindHold(fire, (held) => host.input.setVirtualFire(held));
-  bindHold(ads, (held) => host.input.setVirtualAds(held));
+  let adsLatched = false;
+  const setAdsLatched = (next: boolean): void => {
+    adsLatched = next;
+    host.input.setVirtualAds(next);
+    ads.classList.toggle('is-active', next);
+    ads.setAttribute('aria-pressed', String(next));
+  };
+  bindTap(ads, () => setAdsLatched(!adsLatched));
   bindHold(interact, (held) => host.input.setVirtualInteract(held));
   const tapAction = (el: HTMLElement, action: VirtualAction): void => bindTap(el, () => host.input.pressVirtual(action));
   tapAction(jump, 'jump');
@@ -336,13 +369,16 @@ export function installMobileActivity(game: Game, uiRoot: HTMLElement): () => vo
     digits.appendChild(d);
   }
 
-  play.append(look, joystick, fire, ads, jump, interact, reload, grenade, plate, crouch, weapon, map, pause, digits);
+  play.append(look, joystick, leftCombat, jump, interact, reload, grenade, plate, crouch, weapon, map, pause, digits);
   shell.append(play, rotate);
   uiRoot.appendChild(shell);
 
   let raf = 0;
+  let wasPlaying = false;
   const sync = (): void => {
     const playing = host.state === 'playing';
+    if (!playing && wasPlaying && adsLatched) setAdsLatched(false);
+    wasPlaying = playing;
     play.classList.toggle('is-hidden', !playing);
     digits.classList.toggle('is-visible', playing && host.interaction.panelOpen);
     raf = requestAnimationFrame(sync);
@@ -351,6 +387,7 @@ export function installMobileActivity(game: Game, uiRoot: HTMLElement): () => vo
 
   return (): void => {
     cancelAnimationFrame(raf);
+    if (adsLatched) setAdsLatched(false);
     host.input.clear();
     shell.remove();
     style.remove();
