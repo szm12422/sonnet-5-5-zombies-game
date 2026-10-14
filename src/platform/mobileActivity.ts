@@ -19,10 +19,7 @@ interface MobileGameInternals {
   pause(reason: 'menu' | 'lost'): void;
 }
 
-/**
- * Game capability checks still require the Pointer Lock API on desktop. Mobile never uses pointer lock, so provide a
- * harmless capability shim before Game.init() on browsers where the method is missing.
- */
+/** Mobile never uses pointer lock, so provide a harmless capability shim when the API is absent. */
 export function prepareMobileRuntime(): void {
   document.documentElement.dataset.mobileActivity = 'true';
   const proto = HTMLElement.prototype as unknown as { requestPointerLock?: () => void };
@@ -93,7 +90,7 @@ function installStyle(): HTMLStyleElement {
       inset: 0;
       z-index: 60;
       pointer-events: none;
-      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-family: "Noto Sans JP", "Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif;
       -webkit-tap-highlight-color: transparent;
     }
     .mobile-play-controls { position: absolute; inset: 0; pointer-events: none; }
@@ -128,8 +125,8 @@ function installStyle(): HTMLStyleElement {
       border-radius: 50%;
       background: rgba(5, 12, 17, .52);
       color: rgba(235, 246, 248, .92);
-      font: 700 11px/1 ui-monospace, Menlo, Consolas, monospace;
-      letter-spacing: .04em;
+      font: 700 11px/1 "Noto Sans JP", "Yu Gothic UI", Meiryo, system-ui, sans-serif;
+      letter-spacing: .02em;
       box-shadow: inset 0 0 18px rgba(88, 198, 228, .06), 0 2px 10px rgba(0,0,0,.2);
       backdrop-filter: blur(3px);
       pointer-events: auto; touch-action: none;
@@ -189,8 +186,8 @@ function installStyle(): HTMLStyleElement {
       padding: 28px; box-sizing: border-box;
       pointer-events: auto;
       background: rgba(3, 7, 10, .94); color: #dce9ed;
-      font: 700 15px/1.6 ui-monospace, Menlo, Consolas, monospace;
-      letter-spacing: .05em;
+      font: 700 15px/1.6 "Noto Sans JP", "Yu Gothic UI", Meiryo, system-ui, sans-serif;
+      letter-spacing: .03em;
     }
     @media (orientation: portrait) {
       .mobile-rotate { display: flex; }
@@ -237,13 +234,12 @@ export function installMobileActivity(game: Game, uiRoot: HTMLElement): () => vo
     host.beginPlaying(false);
   };
 
-  // Mobile starts conservative and the existing adaptive-resolution loop can recover upward when performance allows.
   host.applySettings({ ...host.settings, quality: 'low' }, false);
   host.renderer.setRenderScale(0.82);
 
   const shell = document.createElement('div');
   shell.className = 'mobile-activity-shell';
-  shell.setAttribute('aria-label', 'Mobile game controls');
+  shell.setAttribute('aria-label', 'モバイル操作');
 
   const rotate = document.createElement('div');
   rotate.className = 'mobile-rotate';
@@ -255,7 +251,7 @@ export function installMobileActivity(game: Game, uiRoot: HTMLElement): () => vo
 
   const look = document.createElement('div');
   look.className = 'mobile-look-zone';
-  look.setAttribute('aria-label', 'Swipe to look');
+  look.setAttribute('aria-label', 'スワイプで視点操作');
   let lookPointer: number | null = null;
   let lookX = 0;
   let lookY = 0;
@@ -284,7 +280,7 @@ export function installMobileActivity(game: Game, uiRoot: HTMLElement): () => vo
 
   const joystick = document.createElement('div');
   joystick.className = 'mobile-joystick';
-  joystick.setAttribute('aria-label', 'Movement joystick');
+  joystick.setAttribute('aria-label', '移動スティック');
   let joyPointer: number | null = null;
   const updateStick = (ev: PointerEvent): void => {
     const rect = joystick.getBoundingClientRect();
@@ -324,18 +320,18 @@ export function installMobileActivity(game: Game, uiRoot: HTMLElement): () => vo
   joystick.addEventListener('pointerup', releaseStick);
   joystick.addEventListener('pointercancel', releaseStick);
 
-  const fire = button('FIRE', 'mobile-fire', 'Fire');
-  const ads = button('ADS', 'mobile-ads', 'Toggle aim down sights');
+  const fire = button('射撃', 'mobile-fire', '射撃');
+  const ads = button('ADS', 'mobile-ads', 'ADS切替');
   ads.setAttribute('aria-pressed', 'false');
-  const jump = button('JUMP', 'mobile-jump', 'Jump');
-  const interact = button('E', 'mobile-interact', 'Interact');
-  const reload = button('R', 'mobile-reload', 'Reload');
-  const grenade = button('G', 'mobile-grenade', 'Grenade');
-  const plate = button('ARM', 'mobile-plate', 'Apply armor plate');
-  const crouch = button('C', 'mobile-crouch', 'Crouch');
-  const weapon = button('SWAP', 'mobile-weapon', 'Switch weapon');
-  const map = button('MAP', 'mobile-map', 'Tactical map');
-  const pause = button('Ⅱ', 'mobile-pause', 'Pause');
+  const jump = button('ジャンプ', 'mobile-jump', 'ジャンプ');
+  const interact = button('E', 'mobile-interact', '操作');
+  const reload = button('R', 'mobile-reload', 'リロード');
+  const grenade = button('G', 'mobile-grenade', 'グレネード');
+  const plate = button('装甲', 'mobile-plate', 'アーマープレート');
+  const crouch = button('C', 'mobile-crouch', 'しゃがみ');
+  const weapon = button('切替', 'mobile-weapon', '武器切替');
+  const map = button('マップ', 'mobile-map', '戦術マップ');
+  const pause = button('Ⅱ', 'mobile-pause', '一時停止');
 
   const leftCombat = document.createElement('div');
   leftCombat.className = 'mobile-left-combat';
@@ -364,7 +360,7 @@ export function installMobileActivity(game: Game, uiRoot: HTMLElement): () => vo
   const digits = document.createElement('div');
   digits.className = 'mobile-station-digits';
   for (let i = 1; i <= 6; i++) {
-    const d = button(String(i), 'mobile-digit', `Station option ${i}`);
+    const d = button(String(i), 'mobile-digit', `ショップ項目 ${i}`);
     bindTap(d, () => pressDigit(i));
     digits.appendChild(d);
   }
