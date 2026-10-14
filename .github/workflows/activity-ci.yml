@@ -9,7 +9,7 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     env:
-      VITE_DISCORD_CLIENT_ID: '000000000000000000'
+      VITE_DISCORD_CLIENT_ID: '1560032636016140449'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
