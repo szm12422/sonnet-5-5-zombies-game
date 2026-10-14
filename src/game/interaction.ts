@@ -2,8 +2,16 @@
  * Contextual interactions: crates, stations (number-key panels), the transmitter console, the extraction terminal and the
  * helicopter door. Produces the HUD prompt / station panel each frame and executes actions exactly once.
  */
-import { ECONOMY, MISSION, PLAYER, WEAPONS } from '../config';
-import { buyMenu, purchaseBuy, purchaseUpgrade, upgradeMenu, type BuyItemId, type StationItem } from '../logic/economy';
+import { ECONOMY, MISSION, PLAYER } from '../config';
+import {
+  buyMenu,
+  isWeaponPurchase,
+  purchaseBuy,
+  purchaseUpgrade,
+  upgradeMenu,
+  type ExtendedBuyItemId,
+  type StationItem,
+} from '../logic/extendedEconomy';
 import type { Edges } from '../player/input';
 import type { HudPrompt, StationPanel } from '../ui/hudTypes';
 import type { GameCtx } from './ctx';
@@ -250,7 +258,7 @@ export class Interaction {
       title: s.def.name,
       subtitle: `FUNDS  $${inv.cash.toLocaleString('en-US')}`,
       items: items.map((i) => ({ key: i.key, label: i.label, detail: i.detail, cost: i.cost, state: i.state, note: i.note })),
-      hint: buy ? 'PRESS NUMBER TO BUY   E / WALK AWAY TO CLOSE   WEAPON BUYS REPLACE THE EQUIPPED WEAPON' : 'PRESS 1 / 2 TO UPGRADE   E / WALK AWAY TO CLOSE',
+      hint: buy ? '1〜9で購入   E / 離れる: 閉じる   武器購入は装備中の武器と入れ替え' : 'PRESS 1 / 2 TO UPGRADE   E / WALK AWAY TO CLOSE',
     };
   }
 
@@ -260,15 +268,13 @@ export class Interaction {
     const items = this.items(s);
     const item = items.find((i) => i.key === String(digit));
     if (!item) return;
-    // any in-progress reload of a weapon that is about to be swapped must not survive the purchase
-    const result = s.def.kind === 'buy' ? purchaseBuy(inv, item.id as BuyItemId) : purchaseUpgrade(inv, (digit - 1) as 0 | 1);
+
+    const result = s.def.kind === 'buy' ? purchaseBuy(inv, item.id as ExtendedBuyItemId) : purchaseUpgrade(inv, (digit - 1) as 0 | 1);
     if (result.ok) {
-      const equipped = inv.slots[inv.activeSlot];
-      if (s.def.kind === 'buy' && (item.id === 'shotgun' || item.id === 'rearm')) ctx.weapons.cancelActions();
+      if (s.def.kind === 'buy' && isWeaponPurchase(item.id)) ctx.weapons.cancelActions();
       if (s.def.kind === 'upgrade') ctx.weapons.cancelActions();
-      void equipped;
       ctx.audio.play(s.def.kind === 'upgrade' ? 'upgrade_ok' : 'buy_ok', { priority: 2 });
-      s.model.setState(s.def.kind === 'upgrade' ? 'used' : 'used');
+      s.model.setState('used');
       ctx.hudEvent({ type: 'cash', amount: -result.cost });
       ctx.feed(`${result.message.toUpperCase()}  -$${result.cost}`, 'good');
       ctx.fx.sparkle({ x: s.def.x, y: 1.6, z: s.def.z }, s.def.kind === 'upgrade' ? 0x6ff0ff : 0x9be07a, 16);
@@ -277,6 +283,5 @@ export class Interaction {
       s.model.setState('denied');
       ctx.feed(result.message.toUpperCase(), 'warn');
     }
-    void WEAPONS;
   }
 }
