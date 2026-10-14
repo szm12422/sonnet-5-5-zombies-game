@@ -132,7 +132,8 @@ function tuneMaterials(scene: THREE.Scene, detail: number, viewmodel: boolean): 
 }
 
 function installVignette(uiRoot: HTMLElement, opacity: number): void {
-  const old = uiRoot.querySelector<HTMLElement>('[data-graphics-vignette="1"]');
+  const host = uiRoot.parentElement ?? uiRoot;
+  const old = host.querySelector<HTMLElement>(':scope > [data-graphics-vignette="1"]');
   if (opacity <= 0) {
     old?.remove();
     return;
@@ -144,40 +145,43 @@ function installVignette(uiRoot: HTMLElement, opacity: number): void {
     'position:absolute',
     'inset:0',
     'pointer-events:none',
-    'z-index:0',
     `opacity:${opacity.toFixed(2)}`,
     'background:radial-gradient(ellipse at center,rgba(0,0,0,0) 50%,rgba(2,7,13,.08) 70%,rgba(1,4,9,.30) 88%,rgba(0,0,0,.48) 100%)',
   ].join(';');
-  if (!old) uiRoot.prepend(node);
+  // Canvas is before this node and #ui-root is after it, so the treatment never darkens HUD text or touch controls.
+  if (!old) host.insertBefore(node, uiRoot);
 }
 
-function tuneLights(game: Game, preset: GraphicsPreset, indoor: number, viewHemi: THREE.HemisphereLight | null): void {
+function applyStaticLightColors(game: Game, viewHemi: THREE.HemisphereLight | null): void {
   const r = game.renderer;
-  const k = clamp01(indoor);
-
   r.light.hemi.color.setHex(0x739bd0);
   r.light.hemi.groundColor.setHex(0x293640);
   r.light.moon.color.setHex(0xb8d5ff);
   r.light.fill.color.setHex(0xff9868);
+  r.viewSun.color.setHex(0xc4dcff);
+  r.viewLamp.color.setHex(0xffad68);
+  if (viewHemi) {
+    viewHemi.color.setHex(0x83a9d8);
+    viewHemi.groundColor.setHex(0x26313b);
+  }
+}
+
+function tuneDynamicLighting(game: Game, preset: GraphicsPreset, indoor: number, viewHemi: THREE.HemisphereLight | null): void {
+  const r = game.renderer;
+  const k = clamp01(indoor);
+
   r.light.hemi.intensity = lerp(3.65, 1.05, k);
   r.light.moon.intensity = lerp(4.7, 0.22, k);
   r.light.fill.intensity = lerp(0.8, 0.05, k);
   r.scene.environmentIntensity = lerp(preset.environment, 0.12, k);
 
-  r.viewSun.color.setHex(0xc4dcff);
   r.viewSun.intensity = lerp(2.75, 0.24, k);
-  r.viewLamp.color.setHex(0xffad68);
   r.viewLamp.intensity = lerp(0, 1.45, k);
   r.viewScene.environmentIntensity = lerp(preset.viewEnvironment, 0.17, k);
-  if (viewHemi) {
-    viewHemi.color.setHex(0x83a9d8);
-    viewHemi.groundColor.setHex(0x26313b);
-    viewHemi.intensity = lerp(2.25, 1.05, k);
-  }
+  if (viewHemi) viewHemi.intensity = lerp(2.25, 1.05, k);
 
   const fog = r.scene.fog;
   if (fog instanceof THREE.FogExp2) {
-    fog.color.setHex(0x35485f);
     fog.density = lerp(0.0101 * preset.fogMul, 0.0032, k);
   }
 
@@ -212,7 +216,11 @@ export function installGraphicsPhase1(game: Game, uiRoot: HTMLElement, profile: 
 
   const viewHemi = r.viewScene.children.find((x): x is THREE.HemisphereLight => x instanceof THREE.HemisphereLight) ?? null;
   const internals = r as unknown as { indoor?: number };
-  tuneLights(game, preset, internals.indoor ?? 0, viewHemi);
+  applyStaticLightColors(game, viewHemi);
+
+  const fog = r.scene.fog;
+  if (fog instanceof THREE.FogExp2) fog.color.setHex(0x35485f);
+  tuneDynamicLighting(game, preset, internals.indoor ?? 0, viewHemi);
 
   if (preset.canvasGrade) {
     r.canvas.style.filter = profile === 'desktop' ? 'saturate(1.07) contrast(1.045) brightness(1.01)' : 'saturate(1.045) contrast(1.03)';
@@ -226,7 +234,7 @@ export function installGraphicsPhase1(game: Game, uiRoot: HTMLElement, profile: 
   const originalRender = r.render.bind(r);
   r.render = (dt: number, time: number): void => {
     originalRender(dt, time);
-    tuneLights(game, preset, internals.indoor ?? 0, viewHemi);
+    tuneDynamicLighting(game, preset, internals.indoor ?? 0, viewHemi);
   };
 
   return preset;
