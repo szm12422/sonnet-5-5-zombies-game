@@ -11,29 +11,31 @@ This branch converts DEAD SIGNAL into a Discord Activity while preserving normal
 - Desktop-only guard for the current keyboard/mouse + Pointer Lock control scheme
 - No OAuth, bot token, backend, database, or multiplayer added
 
+## Discord application
+
+- Application ID: `1560032636016140449`
+- Production host after deployment: `https://szm12422.github.io/sonnet-5-5-zombies-game/`
+
+The application ID is public metadata and is intentionally compiled into the Activity build. No repository secret is required for it.
+
 ## Required Discord configuration
 
-1. Create an application in the Discord Developer Portal.
-2. Copy the application ID.
-3. In this GitHub repository, open **Settings → Secrets and variables → Actions → Variables**.
-4. Create repository variable `DISCORD_CLIENT_ID` with the Discord application ID.
-5. Open **Settings → Pages** and select **GitHub Actions** as the source.
-6. Merge the Activity branch to `main` and wait for the `Deploy Discord Activity` workflow to succeed.
-7. Copy the resulting GitHub Pages host/path.
-8. In Discord Developer Portal open **Activities → URL Mappings** and map `/` to the deployed Pages location.
-9. Enable Activities for the application.
+1. Merge the Activity branch to `main`.
+2. Wait for the `Deploy Discord Activity` workflow to succeed. The workflow enables/configures GitHub Pages and deploys `dist`.
+3. Confirm the production URL opens: `https://szm12422.github.io/sonnet-5-5-zombies-game/`.
+4. In Discord Developer Portal, open application `1560032636016140449`.
+5. Open **Activities → URL Mappings**.
+6. Add a mapping whose prefix/path is `/` and whose target is the production GitHub Pages URL above.
+7. Save the URL Mapping.
+8. Open **Activities → Settings** and enable Activities.
+9. Activate the unpublished Activity for your Discord account/testers using the application ID if Discord asks for it.
+10. Launch it from Discord Desktop and run the acceptance checklist below.
 
-The production build uses `VITE_DISCORD_CLIENT_ID`; GitHub Actions maps `DISCORD_CLIENT_ID` into it at build time.
+Discord requires at least one URL Mapping before Activities can be enabled.
 
 ## Local development
 
-Create `.env.local`:
-
-```env
-VITE_DISCORD_CLIENT_ID=YOUR_DISCORD_APPLICATION_ID
-```
-
-Then:
+Copy `.env.example` to `.env.local`, then run:
 
 ```bash
 npm install
@@ -48,7 +50,7 @@ npm test
 npm run activity:build
 ```
 
-For Discord-local testing, expose the Vite server through an HTTPS tunnel and point the Activity URL Mapping at that tunnel host.
+For Discord-local testing, expose the Vite server through an HTTPS tunnel and temporarily point the Activity URL Mapping at that tunnel host.
 
 ## Acceptance checklist
 
