@@ -13,7 +13,7 @@ export interface Edges {
   slot1: boolean;
   slot2: boolean;
   crouch: boolean;
-  /** Number-key presses 1..6 (used by station panels). */
+  /** Number-key presses 1..9 (used by station panels). */
   digits: number[];
   wheel: number;
   firePressed: boolean;
@@ -26,7 +26,7 @@ export type VirtualAction = 'jump' | 'reload' | 'grenade' | 'plate' | 'map' | 'c
 
 const GAME_KEYS = new Set([
   'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'ShiftRight', 'Space', 'KeyC', 'KeyE', 'KeyR', 'KeyG', 'KeyQ', 'KeyM',
-  'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'ControlLeft', 'Tab',
+  'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'ControlLeft', 'Tab',
 ]);
 
 const clampUnit = (v: number): number => Math.max(-1, Math.min(1, Number.isFinite(v) ? v : 0));
@@ -202,6 +202,9 @@ export class Input {
       case 'Digit4': this.edges.digits.push(4); break;
       case 'Digit5': this.edges.digits.push(5); break;
       case 'Digit6': this.edges.digits.push(6); break;
+      case 'Digit7': this.edges.digits.push(7); break;
+      case 'Digit8': this.edges.digits.push(8); break;
+      case 'Digit9': this.edges.digits.push(9); break;
       default: break;
     }
   };
