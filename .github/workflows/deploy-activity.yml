@@ -18,18 +18,19 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      VITE_DISCORD_CLIENT_ID: ${{ vars.DISCORD_CLIENT_ID }}
+      VITE_DISCORD_CLIENT_ID: '1560032636016140449'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22.12.0'
-      - name: Require Discord application ID
-        run: test -n "$VITE_DISCORD_CLIENT_ID" || (echo 'Set repository variable DISCORD_CLIENT_ID before deploying.' && exit 1)
       - run: npm install --no-audit --no-fund
+      - run: npm run typecheck
       - run: npm test
       - run: npm run activity:build
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
