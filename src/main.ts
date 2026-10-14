@@ -1,6 +1,7 @@
 /** Entry point: Discord Activity handshake, capability check, game construction, performance setup and dev hooks. */
 import { Game } from './game/game';
 import { installCombatFxPhase3 } from './fx/combatFxPhase3';
+import { disableUnsupportedCombatFxFog } from './fx/combatFxFogGuard';
 import { installJapanesePresentation, translateJa } from './i18n/ja';
 import { installRuntimePerformancePass } from './perf/runtimeBudget';
 import { prepareDiscordActivity } from './platform/discordActivity';
@@ -58,6 +59,8 @@ async function main(): Promise<void> {
     const performanceBudget = installRuntimePerformancePass(game, mobileActivity);
     installGraphicsPhase1(game, uiRoot, performanceBudget.profile);
     installCombatFxPhase3(game, performanceBudget.profile);
+    // Phase 3's custom shader does not implement Three.js scene-fog uniforms. Guard it before the next RAF renders.
+    disableUnsupportedCombatFxFog(game.fx.root);
     installGraphicsPhase4(game);
 
     if (import.meta.env.DEV) {
