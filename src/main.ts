@@ -5,6 +5,7 @@ import { installRuntimePerformancePass } from './perf/runtimeBudget';
 import { prepareDiscordActivity } from './platform/discordActivity';
 import { installMobileActivity, prepareMobileRuntime } from './platform/mobileActivity';
 import { installMobileStationExtensions } from './platform/mobileStationExtensions';
+import { installGraphicsPhase1 } from './render/graphicsPhase1';
 import { installExtraWeaponAudio } from './weapons/extraWeapons';
 import { installExtraWeaponFxAdapters } from './weapons/runtimeAdapters';
 
@@ -52,7 +53,8 @@ async function main(): Promise<void> {
     }
     installExtraWeaponAudio(game);
     installExtraWeaponFxAdapters(game);
-    installRuntimePerformancePass(game, mobileActivity);
+    const performanceBudget = installRuntimePerformancePass(game, mobileActivity);
+    installGraphicsPhase1(game, uiRoot, performanceBudget.profile);
 
     if (import.meta.env.DEV) {
       const { installTestApi } = await import('./dev/testApi');
