@@ -9,10 +9,11 @@ describe('combat FX fog guard', () => {
     const points = new THREE.Points(new THREE.BufferGeometry(), mat);
     points.name = 'CombatFxPhase3Soft';
     root.add(points);
+    const version = mat.version;
 
     expect(disableUnsupportedCombatFxFog(root)).toBe(1);
     expect(mat.fog).toBe(false);
-    expect(mat.needsUpdate).toBe(true);
+    expect(mat.version).toBeGreaterThan(version);
   });
 
   it('does not touch unrelated shader materials', () => {
