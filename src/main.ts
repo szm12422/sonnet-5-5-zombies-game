@@ -1,5 +1,6 @@
 /** Entry point: Discord Activity handshake, capability check, game construction, performance setup and dev hooks. */
 import { Game } from './game/game';
+import { installCombatFxPhase3 } from './fx/combatFxPhase3';
 import { installJapanesePresentation, translateJa } from './i18n/ja';
 import { installRuntimePerformancePass } from './perf/runtimeBudget';
 import { prepareDiscordActivity } from './platform/discordActivity';
@@ -55,6 +56,7 @@ async function main(): Promise<void> {
     installExtraWeaponFxAdapters(game);
     const performanceBudget = installRuntimePerformancePass(game, mobileActivity);
     installGraphicsPhase1(game, uiRoot, performanceBudget.profile);
+    installCombatFxPhase3(game, performanceBudget.profile);
 
     if (import.meta.env.DEV) {
       const { installTestApi } = await import('./dev/testApi');
