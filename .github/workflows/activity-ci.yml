@@ -3,7 +3,7 @@ name: Activity CI
 on:
   pull_request:
   push:
-    branches: [discord-activity, main]
+    branches: [discord-activity, mobile-performance, main]
 
 jobs:
   verify:
