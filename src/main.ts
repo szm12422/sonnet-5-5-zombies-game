@@ -4,6 +4,7 @@ import { installJapanesePresentation, translateJa } from './i18n/ja';
 import { installRuntimePerformancePass } from './perf/runtimeBudget';
 import { prepareDiscordActivity } from './platform/discordActivity';
 import { installMobileActivity, prepareMobileRuntime } from './platform/mobileActivity';
+import { installMobileStationExtensions } from './platform/mobileStationExtensions';
 import { installExtraWeaponAudio } from './weapons/extraWeapons';
 
 function showFatal(title: string, message: string): void {
@@ -44,7 +45,10 @@ async function main(): Promise<void> {
     if (!ok) return;
 
     // Touch controls establish the mobile quality baseline first; the runtime budget then applies the device-specific cap.
-    if (mobileActivity) installMobileActivity(game, uiRoot);
+    if (mobileActivity) {
+      installMobileActivity(game, uiRoot);
+      installMobileStationExtensions(uiRoot);
+    }
     installExtraWeaponAudio(game);
     installRuntimePerformancePass(game, mobileActivity);
 
