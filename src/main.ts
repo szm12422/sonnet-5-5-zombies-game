@@ -6,6 +6,7 @@ import { prepareDiscordActivity } from './platform/discordActivity';
 import { installMobileActivity, prepareMobileRuntime } from './platform/mobileActivity';
 import { installMobileStationExtensions } from './platform/mobileStationExtensions';
 import { installExtraWeaponAudio } from './weapons/extraWeapons';
+import { installExtraWeaponFxAdapters } from './weapons/runtimeAdapters';
 
 function showFatal(title: string, message: string): void {
   const root = document.getElementById('ui-root');
@@ -50,6 +51,7 @@ async function main(): Promise<void> {
       installMobileStationExtensions(uiRoot);
     }
     installExtraWeaponAudio(game);
+    installExtraWeaponFxAdapters(game);
     installRuntimePerformancePass(game, mobileActivity);
 
     if (import.meta.env.DEV) {
