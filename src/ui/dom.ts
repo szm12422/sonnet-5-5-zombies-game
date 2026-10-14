@@ -1,4 +1,5 @@
 /** Tiny DOM helpers: element factories (never innerHTML from data), change-detecting cells, and formatters. */
+import { translateJa } from '../i18n/ja';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -10,7 +11,7 @@ export function el<K extends keyof HTMLElementTagNameMap>(
 ): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
-  if (text !== undefined) e.textContent = text;
+  if (text !== undefined) e.textContent = translateJa(text);
   if (parent) parent.appendChild(e);
   return e;
 }
@@ -26,14 +27,15 @@ export function svgEl<K extends keyof SVGElementTagNameMap>(
   return e;
 }
 
-/** Writes textContent only when the value changed. */
+/** Writes textContent only when the translated value changed. */
 export class TextCell {
   private v: string | null = null;
   constructor(readonly node: Node) {}
   set(v: string): void {
-    if (v !== this.v) {
-      this.v = v;
-      this.node.textContent = v;
+    const text = translateJa(v);
+    if (text !== this.v) {
+      this.v = text;
+      this.node.textContent = text;
     }
   }
 }

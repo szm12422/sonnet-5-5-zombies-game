@@ -4,6 +4,7 @@
  * canvas draws (minimap always, tactical map only while open).
  */
 import './styles.css';
+import { translateJa } from '../i18n/ja';
 import { TextCell, el, fmtMoney, setHidden } from './dom';
 import {
   BannerView,
@@ -62,18 +63,15 @@ class Hud implements HudApi {
     const hud = el('div', 'ds-hud', root);
     this.hud = hud;
 
-    // ---- full-screen effects ----
     this.fx = new ScreenFx(hud);
 
-    // ---- top-left: minimap + threat ----
     const tl = el('div', 'ds-topleft', hud);
     const mm = el('div', 'ds-minimap', tl);
     const mmCanvas = el('canvas', '', mm);
-    mmCanvas.setAttribute('aria-label', 'Minimap');
+    mmCanvas.setAttribute('aria-label', 'ミニマップ');
     this.minimap = new Minimap(mmCanvas);
     this.region = new RegionView(tl);
 
-    // ---- top-centre: compass, clocks, hazard, boss ----
     const tc = el('div', 'ds-topcenter', hud);
     this.compass = new CompassView(tc);
     this.clocks = new ClockView(tc);
@@ -81,7 +79,6 @@ class Hud implements HudApi {
     this.boss = new BossView(tc);
     this.banner = new BannerView(hud);
 
-    // ---- right column: objectives + station panel ----
     const right = el('div', 'ds-right', hud);
     this.fpsEl = el('div', 'ds-fps', hud);
     this.fpsEl.hidden = true;
@@ -89,7 +86,6 @@ class Hud implements HudApi {
     this.objectives = new ObjectivesView(right);
     this.station = new StationView(right);
 
-    // ---- centre: crosshair, hit marker, damage arcs, prompts ----
     const centre = el('div', 'ds-center', hud);
     this.arcs = new DamageArcs(centre);
     this.crosshair = new Crosshair(centre);
@@ -97,7 +93,6 @@ class Hud implements HudApi {
     this.plate = new PlateRing(hud);
     this.prompt = new PromptView(hud);
 
-    // ---- bottom-left: feed, cash, vitals ----
     const bl = el('div', 'ds-bottomleft', hud);
     this.feed = new FeedView(bl);
     const cash = el('div', 'ds-cash', bl);
@@ -106,19 +101,16 @@ class Hud implements HudApi {
     this.cashDeltas = new CashDeltas(el('span', 'deltas', cash));
     this.vitals = new VitalsView(bl);
 
-    // ---- bottom-right: weapon ----
     const br = el('div', 'ds-bottomright', hud);
     this.weapon = new WeaponView(br);
 
-    // ---- bottom-centre: radio ----
     const bc = el('div', 'ds-bottomcenter', hud);
     this.radio = new RadioView(bc);
 
-    // ---- tactical map overlay ----
     this.tacRoot = el('div', 'ds-tactical', hud);
     this.tacRoot.hidden = true;
     const tacCanvas = el('canvas', '', this.tacRoot);
-    tacCanvas.setAttribute('aria-label', 'Tactical map');
+    tacCanvas.setAttribute('aria-label', '戦術マップ');
     this.tacMap = new TacticalMap(tacCanvas);
 
     this.layout();
@@ -194,13 +186,13 @@ class Hud implements HudApi {
         }
         break;
       case 'banner':
-        this.banner.push(e.title, e.subtitle, e.tone, e.duration);
+        this.banner.push(translateJa(e.title), e.subtitle ? translateJa(e.subtitle) : e.subtitle, e.tone, e.duration);
         break;
       case 'feed':
-        this.feed.push(e.text, e.tone);
+        this.feed.push(translateJa(e.text), e.tone);
         break;
       case 'radio':
-        this.radio.push(e.speaker, e.text, e.duration);
+        this.radio.push(translateJa(e.speaker), translateJa(e.text), e.duration);
         break;
       case 'flash':
         this.fx.flash(e.color, e.strength);
@@ -233,7 +225,6 @@ class Hud implements HudApi {
     return this.tactical;
   }
 
-  /** Extra (not part of the contract): mirror the reduced-motion setting when the HUD is used without the menus. */
   setReducedMotion(v: boolean): void {
     setReducedMotionSetting(v);
   }

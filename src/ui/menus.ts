@@ -5,6 +5,7 @@
  */
 import './styles.css';
 import { DEFAULT_SETTINGS, REGIONS } from '../config';
+import { translateJa } from '../i18n/ja';
 import type { BestRun, MissionStats, Settings } from '../types';
 import { el, fmtClock, fmtInt, fmtMoney } from './dom';
 import type { MenuCallbacks, MenusApi } from './hudTypes';
@@ -71,10 +72,6 @@ class Menus implements MenusApi {
     return this.kind !== null;
   }
 
-  // -------------------------------------------------------------------------------------------
-  // settings
-  // -------------------------------------------------------------------------------------------
-
   setSettings(settings: Settings): void {
     this.settings = { ...settings };
     setReducedMotionSetting(settings.reducedMotion);
@@ -94,10 +91,6 @@ class Menus implements MenusApi {
     this.panels.add(panel);
     return panel.root;
   }
-
-  // -------------------------------------------------------------------------------------------
-  // screen management
-  // -------------------------------------------------------------------------------------------
 
   private setScreen(kind: ScreenKind, node: HTMLElement): void {
     this.screen = node;
@@ -135,26 +128,27 @@ class Menus implements MenusApi {
     return b;
   }
 
-  /** Destructive action button: first click arms it ("CONFIRM"), second click within 3 s runs the action. */
+  /** Destructive action button: first click arms it (confirm), second click within 3 s runs the action. */
   private confirmButton(parent: HTMLElement, label: string, cls: string, onConfirm: () => void): HTMLButtonElement {
+    const displayLabel = translateJa(label);
     const b = this.button(parent, label, cls, () => {
       const timer = this.armTimers.get(b);
       if (timer !== undefined) {
         window.clearTimeout(timer);
         this.armTimers.delete(b);
         b.classList.remove('armed');
-        b.textContent = label;
+        b.textContent = displayLabel;
         onConfirm();
         return;
       }
       b.classList.add('armed');
-      b.textContent = 'CONFIRM';
+      b.textContent = translateJa('CONFIRM');
       this.armTimers.set(
         b,
         window.setTimeout(() => {
           this.armTimers.delete(b);
           b.classList.remove('armed');
-          b.textContent = label;
+          b.textContent = displayLabel;
         }, 3000),
       );
     });
@@ -187,17 +181,12 @@ class Menus implements MenusApi {
     return show;
   }
 
-  // -------------------------------------------------------------------------------------------
-  // title
-  // -------------------------------------------------------------------------------------------
-
   showTitle(best: BestRun | null): void {
     this.clearScreen();
     const root = el('div', '');
     el('div', 'ds-shade', root);
     el('div', 'ds-scanlines', root);
 
-    // ---- left: title block ----
     const main = el('div', 'ds-title-main', root);
     const kicker = el('div', 'kicker', main);
     el('span', 'haz', kicker);
@@ -217,7 +206,7 @@ class Menus implements MenusApi {
 
     const actions = el('div', 'actions', main);
     const deployBtn = this.button(actions, 'DEPLOY', 'primary big', () => this.deploy());
-    deployBtn.setAttribute('aria-label', 'Deploy into the exclusion zone');
+    deployBtn.setAttribute('aria-label', '作戦を開始');
     let showTab: (w: 'controls' | 'settings') => void = () => {};
     this.button(actions, 'SETTINGS', '', () => showTab('settings'));
     this.button(actions, 'CONTROLS', '', () => showTab('controls'));
@@ -227,18 +216,12 @@ class Menus implements MenusApi {
     if (best) {
       el('span', 'lbl', bestEl, 'BEST EXTRACTION');
       el('span', 'val', bestEl, fmtClock(best.time));
-      el(
-        'span',
-        'sub',
-        bestEl,
-        `${fmtInt(best.kills)} KILLS  /  ${fmtInt(best.headshots)} HEADSHOTS  /  ${fmtMoney(best.cash)}  /  ${best.date.slice(0, 10)}`,
-      );
+      el('span', 'sub', bestEl, `${fmtInt(best.kills)} KILLS  /  ${fmtInt(best.headshots)} HEADSHOTS  /  ${fmtMoney(best.cash)}  /  ${best.date.slice(0, 10)}`);
     } else {
       el('span', 'lbl', bestEl, 'SERVICE RECORD');
       el('span', 'sub', bestEl, 'NO SUCCESSFUL EXTRACTIONS ON FILE');
     }
 
-    // ---- right: brief + tabbed controls/settings ----
     const side = el('div', 'ds-title-side', root);
     const brief = el('div', 'ds-brief ds-panel ds-brk', side);
     const bh = el('div', 'ds-panel-head', brief);
@@ -264,10 +247,6 @@ class Menus implements MenusApi {
     this.setScreen('title', root);
     deployBtn.focus({ preventScroll: true });
   }
-
-  // -------------------------------------------------------------------------------------------
-  // pause + resume
-  // -------------------------------------------------------------------------------------------
 
   showPause(): void {
     this.clearScreen();
@@ -301,10 +280,6 @@ class Menus implements MenusApi {
     this.setScreen('resume', root);
     btn.focus({ preventScroll: true });
   }
-
-  // -------------------------------------------------------------------------------------------
-  // results
-  // -------------------------------------------------------------------------------------------
 
   showResults(stats: MissionStats, best: BestRun | null, isNewBest: boolean): void {
     this.clearScreen();
@@ -368,10 +343,6 @@ class Menus implements MenusApi {
     again.focus({ preventScroll: true });
   }
 
-  // -------------------------------------------------------------------------------------------
-  // error + loading
-  // -------------------------------------------------------------------------------------------
-
   showError(title: string, message: string, details?: string): void {
     this.clearScreen();
     const root = el('div', '');
@@ -397,7 +368,7 @@ class Menus implements MenusApi {
       const bar = el('div', 'bar', this.loading);
       this.loadFill = el('i', '', bar);
     }
-    this.loadText.textContent = text;
+    this.loadText.textContent = translateJa(text);
     this.loadFill.style.transform = `scaleX(${Math.max(0, Math.min(1, fraction)).toFixed(3)})`;
   }
 
