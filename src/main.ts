@@ -8,6 +8,7 @@ import { prepareDiscordActivity } from './platform/discordActivity';
 import { installMobileActivity, prepareMobileRuntime } from './platform/mobileActivity';
 import { installMobileStationExtensions } from './platform/mobileStationExtensions';
 import { installEnvironmentPhase5 } from './render/environmentPhase5';
+import { installEnvironmentPhase6 } from './render/environmentPhase6';
 import { installGraphicsPhase1 } from './render/graphicsPhase1';
 import { installGraphicsPhase4 } from './render/graphicsPhase4';
 import { installExtraWeaponAudio } from './weapons/extraWeapons';
@@ -59,6 +60,7 @@ async function main(): Promise<void> {
     installExtraWeaponFxAdapters(game);
     const performanceBudget = installRuntimePerformancePass(game, mobileActivity);
     installEnvironmentPhase5(game, performanceBudget.profile);
+    installEnvironmentPhase6(game, performanceBudget.profile);
     installGraphicsPhase1(game, uiRoot, performanceBudget.profile);
     installCombatFxPhase3(game, performanceBudget.profile);
     // Phase 3's custom shader does not implement Three.js scene-fog uniforms. Guard it before the next RAF renders.
