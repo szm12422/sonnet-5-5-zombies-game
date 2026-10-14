@@ -1,6 +1,7 @@
 /** Entry point: Discord Activity handshake, capability check, game construction, development test hooks. */
 import { Game } from './game/game';
 import { prepareDiscordActivity } from './platform/discordActivity';
+import { installMobileActivity, prepareMobileRuntime } from './platform/mobileActivity';
 
 function showFatal(title: string, message: string): void {
   const root = document.getElementById('ui-root');
@@ -28,20 +29,15 @@ async function main(): Promise<void> {
 
   try {
     const activity = await prepareDiscordActivity();
-
-    // The current FPS control model requires keyboard/mouse + Pointer Lock.
-    if (activity.embedded && activity.platform === 'mobile') {
-      showFatal(
-        'DESKTOP ACTIVITY',
-        'DEAD SIGNAL currently requires keyboard, mouse, WebGL 2 and Pointer Lock. Open this Activity in Discord Desktop or Discord Web on a desktop browser.',
-      );
-      return;
-    }
+    const mobileActivity = activity.embedded && activity.platform === 'mobile';
+    if (mobileActivity) prepareMobileRuntime();
 
     const game = new Game({ canvas, uiRoot });
     game.onFatal = (m) => showFatal('SOMETHING WENT WRONG', `${m}\n\nReload the page to try again.`);
     const ok = await game.init();
-    if (!ok) return; // unsupported browser: the menus already show the error
+    if (!ok) return;
+
+    if (mobileActivity) installMobileActivity(game, uiRoot);
 
     // Inline `import.meta.env.DEV` so the production build drops the whole branch (and the test-hook chunk).
     if (import.meta.env.DEV) {

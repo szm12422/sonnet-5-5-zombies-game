@@ -1,6 +1,6 @@
 /**
- * Keyboard / mouse input. Held state + one-shot edges that the game consumes each frame. Everything is cleared when
- * input is disabled, on blur, and on visibility changes, so no key or button can stay "stuck" after pausing.
+ * Keyboard / mouse + virtual touch input. Held state + one-shot edges are consumed once per frame.
+ * Everything is cleared when input is disabled, on blur, and on visibility changes so no control can stay stuck.
  */
 export interface Edges {
   jump: boolean;
@@ -22,14 +22,21 @@ export interface Edges {
   mouseDY: number;
 }
 
+export type VirtualAction = 'jump' | 'reload' | 'grenade' | 'plate' | 'map' | 'crouch' | 'slot1' | 'slot2';
+
 const GAME_KEYS = new Set([
   'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'ShiftRight', 'Space', 'KeyC', 'KeyE', 'KeyR', 'KeyG', 'KeyQ', 'KeyM',
   'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'ControlLeft', 'Tab',
 ]);
 
+const clampUnit = (v: number): number => Math.max(-1, Math.min(1, Number.isFinite(v) ? v : 0));
+
 export class Input {
   private keys = new Set<string>();
   private edges: Edges = this.freshEdges();
+  private virtualForward = 0;
+  private virtualStrafe = 0;
+  private virtualSprint = false;
   fireHeld = false;
   adsHeld = false;
   interactHeld = false;
@@ -65,9 +72,12 @@ export class Input {
     this.enabled = enabled;
   }
 
-  /** Forget every held key / button and pending edge. */
+  /** Forget every held key / button, virtual control and pending edge. */
   clear(): void {
     this.keys.clear();
+    this.virtualForward = 0;
+    this.virtualStrafe = 0;
+    this.virtualSprint = false;
     this.fireHeld = false;
     this.adsHeld = false;
     this.interactHeld = false;
@@ -80,15 +90,19 @@ export class Input {
   }
 
   get forward(): number {
-    return (this.held('KeyW') ? 1 : 0) - (this.held('KeyS') ? 1 : 0);
+    if (!this.enabled) return 0;
+    const keyboard = (this.keys.has('KeyW') ? 1 : 0) - (this.keys.has('KeyS') ? 1 : 0);
+    return clampUnit(keyboard + this.virtualForward);
   }
 
   get strafe(): number {
-    return (this.held('KeyD') ? 1 : 0) - (this.held('KeyA') ? 1 : 0);
+    if (!this.enabled) return 0;
+    const keyboard = (this.keys.has('KeyD') ? 1 : 0) - (this.keys.has('KeyA') ? 1 : 0);
+    return clampUnit(keyboard + this.virtualStrafe);
   }
 
   get sprint(): boolean {
-    return this.held('ShiftLeft') || this.held('ShiftRight');
+    return this.enabled && (this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') || this.virtualSprint);
   }
 
   get jumpHeld(): boolean {
@@ -101,6 +115,61 @@ export class Input {
 
   get ads(): boolean {
     return this.enabled && this.adsHeld;
+  }
+
+  /** Mobile / gamepad movement. Values are normalised to -1..1. */
+  setVirtualMove(strafe: number, forward: number, sprint = false): void {
+    if (!this.enabled) return;
+    this.virtualStrafe = clampUnit(strafe);
+    this.virtualForward = clampUnit(forward);
+    this.virtualSprint = sprint;
+  }
+
+  /** Add touch-look deltas in the same pixel-like units used by mouse look. */
+  addVirtualLook(dx: number, dy: number): void {
+    if (!this.enabled) return;
+    this.edges.mouseDX += Math.max(-250, Math.min(250, dx));
+    this.edges.mouseDY += Math.max(-250, Math.min(250, dy));
+  }
+
+  setVirtualFire(held: boolean): void {
+    if (!this.enabled) return;
+    if (held && !this.fireHeld) this.edges.firePressed = true;
+    this.fireHeld = held;
+    if (!held) this.fireSuppressed = false;
+  }
+
+  setVirtualAds(held: boolean): void {
+    if (!this.enabled) return;
+    if (held && !this.adsHeld) this.edges.adsPressed = true;
+    this.adsHeld = held;
+  }
+
+  setVirtualInteract(held: boolean): void {
+    if (!this.enabled) return;
+    if (held && !this.interactHeld) this.edges.interactPressed = true;
+    if (!held && this.interactHeld) this.edges.interactReleased = true;
+    this.interactHeld = held;
+  }
+
+  pressVirtual(action: VirtualAction): void {
+    if (!this.enabled) return;
+    switch (action) {
+      case 'jump': this.edges.jump = true; break;
+      case 'reload': this.edges.reload = true; break;
+      case 'grenade': this.edges.grenade = true; break;
+      case 'plate': this.edges.plate = true; break;
+      case 'map': this.edges.map = true; break;
+      case 'crouch': this.edges.crouch = true; break;
+      case 'slot1': this.edges.slot1 = true; this.edges.digits.push(1); break;
+      case 'slot2': this.edges.slot2 = true; this.edges.digits.push(2); break;
+      default: break;
+    }
+  }
+
+  cycleVirtualWeapon(direction = 1): void {
+    if (!this.enabled) return;
+    this.edges.wheel += direction < 0 ? -1 : 1;
   }
 
   /** Returns the pending edges and resets them. */
