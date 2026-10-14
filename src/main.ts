@@ -1,8 +1,12 @@
-/** Entry point: Discord Activity handshake, capability check, game construction, development test hooks. */
+/** Entry point: Discord Activity handshake, capability check, game construction, performance setup and dev hooks. */
 import { Game } from './game/game';
 import { installJapanesePresentation, translateJa } from './i18n/ja';
+import { installRuntimePerformancePass } from './perf/runtimeBudget';
 import { prepareDiscordActivity } from './platform/discordActivity';
 import { installMobileActivity, prepareMobileRuntime } from './platform/mobileActivity';
+import { installMobileStationExtensions } from './platform/mobileStationExtensions';
+import { installExtraWeaponAudio } from './weapons/extraWeapons';
+import { installExtraWeaponFxAdapters } from './weapons/runtimeAdapters';
 
 function showFatal(title: string, message: string): void {
   const root = document.getElementById('ui-root');
@@ -41,7 +45,14 @@ async function main(): Promise<void> {
     const ok = await game.init();
     if (!ok) return;
 
-    if (mobileActivity) installMobileActivity(game, uiRoot);
+    // Touch controls establish the mobile quality baseline first; the runtime budget then applies the device-specific cap.
+    if (mobileActivity) {
+      installMobileActivity(game, uiRoot);
+      installMobileStationExtensions(uiRoot);
+    }
+    installExtraWeaponAudio(game);
+    installExtraWeaponFxAdapters(game);
+    installRuntimePerformancePass(game, mobileActivity);
 
     if (import.meta.env.DEV) {
       const { installTestApi } = await import('./dev/testApi');

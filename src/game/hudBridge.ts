@@ -6,6 +6,11 @@ import type { GameCtx } from './ctx';
 import type { InteractionOutput } from './interaction';
 import type { MissionRuntime } from './missionRuntime';
 
+/** Rifle/pistol-family weapons use the physical sight picture when fully aimed; shotguns retain their spread reticle. */
+function hidesCrosshairInAds(id: unknown): boolean {
+  return id === 'rifle' || id === 'pistol' || id === 'smg' || id === 'lmg' || id === 'dmr' || id === 'magnum';
+}
+
 export function buildHudState(ctx: GameCtx, mission: MissionRuntime, io: InteractionOutput, fps: number | null): HudState {
   const s = ctx.session;
   const inv = s.inv;
@@ -47,7 +52,7 @@ export function buildHudState(ctx: GameCtx, mission: MissionRuntime, io: Interac
     crosshair: {
       spread,
       ads: w.adsAmount > 0.5,
-      hidden: !ctx.playerAlive() || ctx.player.sprinting || w.applyingPlate || (w.adsAmount > 0.5 && (cur?.id === 'rifle' || cur?.id === 'pistol')),
+      hidden: !ctx.playerAlive() || ctx.player.sprinting || w.applyingPlate || (w.adsAmount > 0.5 && hidesCrosshairInAds(cur?.id)),
     },
     plateProgress: w.plateProgress,
     lowAmmo,
