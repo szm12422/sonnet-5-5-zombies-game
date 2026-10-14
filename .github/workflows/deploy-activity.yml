@@ -24,7 +24,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22.12.0'
-          cache: npm
       - name: Require Discord application ID
         run: test -n "$VITE_DISCORD_CLIENT_ID" || (echo 'Set repository variable DISCORD_CLIENT_ID before deploying.' && exit 1)
       - run: npm install --no-audit --no-fund
