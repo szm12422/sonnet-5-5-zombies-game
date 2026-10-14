@@ -1,5 +1,6 @@
 /** Entry point: Discord Activity handshake, capability check, game construction, development test hooks. */
 import { Game } from './game/game';
+import { installJapanesePresentation, translateJa } from './i18n/ja';
 import { prepareDiscordActivity } from './platform/discordActivity';
 import { installMobileActivity, prepareMobileRuntime } from './platform/mobileActivity';
 
@@ -8,18 +9,21 @@ function showFatal(title: string, message: string): void {
   if (!root) return;
   const box = document.createElement('div');
   box.style.cssText =
-    'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#05080c;color:#cfd8dc;font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:24px;text-align:center;pointer-events:auto';
+    'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#05080c;color:#cfd8dc;font:14px/1.5 "Noto Sans JP","Yu Gothic UI","Hiragino Sans",Meiryo,system-ui,sans-serif;padding:24px;text-align:center;pointer-events:auto';
   const h = document.createElement('div');
-  h.textContent = title;
-  h.style.cssText = 'font-size:20px;letter-spacing:0.12em;color:#e2b04a';
+  h.textContent = translateJa(title);
+  h.style.cssText = 'font-size:20px;letter-spacing:0.08em;color:#e2b04a';
   const p = document.createElement('div');
-  p.textContent = message;
+  p.textContent = translateJa(message);
   p.style.maxWidth = '640px';
+  p.style.whiteSpace = 'pre-line';
   box.append(h, p);
   root.appendChild(box);
 }
 
 async function main(): Promise<void> {
+  installJapanesePresentation();
+
   const canvas = document.getElementById('game-canvas') as HTMLCanvasElement | null;
   const uiRoot = document.getElementById('ui-root');
   if (!canvas || !uiRoot) {
@@ -39,7 +43,6 @@ async function main(): Promise<void> {
 
     if (mobileActivity) installMobileActivity(game, uiRoot);
 
-    // Inline `import.meta.env.DEV` so the production build drops the whole branch (and the test-hook chunk).
     if (import.meta.env.DEV) {
       const { installTestApi } = await import('./dev/testApi');
       installTestApi(game);
