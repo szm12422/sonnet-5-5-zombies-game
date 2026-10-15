@@ -11,7 +11,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "assets:weapons": "node scripts/fetch-weapon-assets.mjs",
+    "build": "npm run assets:weapons && tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
