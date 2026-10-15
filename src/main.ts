@@ -1,5 +1,6 @@
 /** Entry point: Discord Activity handshake, capability check, game construction, performance setup and dev hooks. */
 import { Game } from './game/game';
+import { installPracticeMode } from './game/practiceMode';
 import { installCombatFxPhase3 } from './fx/combatFxPhase3';
 import { disableUnsupportedCombatFxFog } from './fx/combatFxFogGuard';
 import { installJapanesePresentation, translateJa } from './i18n/ja';
@@ -57,6 +58,8 @@ async function main(): Promise<void> {
       installMobileActivity(game, uiRoot);
       installMobileStationExtensions(uiRoot);
     }
+    // Practice mode is installed after the mobile no-pointer-lock adapter so its start path works identically on phone and PC.
+    installPracticeMode(game, uiRoot);
     installExtraWeaponAudio(game);
     installExtraWeaponFxAdapters(game);
     // External models load in the background. Until each model succeeds, the authored procedural gun remains visible.
