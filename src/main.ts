@@ -11,6 +11,7 @@ import { installEnvironmentPhase5 } from './render/environmentPhase5';
 import { installEnvironmentPhase6 } from './render/environmentPhase6';
 import { installGraphicsPhase1 } from './render/graphicsPhase1';
 import { installGraphicsPhase4 } from './render/graphicsPhase4';
+import { installExternalWeaponViewmodels } from './weapons/externalViewmodels';
 import { installExtraWeaponAudio } from './weapons/extraWeapons';
 import { installExtraWeaponFxAdapters } from './weapons/runtimeAdapters';
 
@@ -58,6 +59,8 @@ async function main(): Promise<void> {
     }
     installExtraWeaponAudio(game);
     installExtraWeaponFxAdapters(game);
+    // External models load in the background. Until each model succeeds, the authored procedural gun remains visible.
+    installExternalWeaponViewmodels(game);
     const performanceBudget = installRuntimePerformancePass(game, mobileActivity);
     installEnvironmentPhase5(game, performanceBudget.profile);
     installEnvironmentPhase6(game, performanceBudget.profile);
