@@ -48,6 +48,14 @@ export interface ExternalViewmodelHandle {
   dispose(): void;
 }
 
+function tuneMaterial(source: THREE.Material): THREE.Material {
+  const m = source.clone();
+  const pbr = m as THREE.MeshStandardMaterial;
+  if ('envMapIntensity' in pbr) pbr.envMapIntensity = Math.max(1.25, pbr.envMapIntensity || 0);
+  if ('roughness' in pbr) pbr.roughness = Math.max(0.22, Math.min(0.72, pbr.roughness));
+  return m;
+}
+
 function normalizeModel(scene: THREE.Group, spec: ExternalWeaponAssetSpec): THREE.Group {
   const root = new THREE.Group();
   root.name = `ExternalWeapon:${spec.id}`;
@@ -75,15 +83,7 @@ function normalizeModel(scene: THREE.Group, spec: ExternalWeaponAssetSpec): THRE
     obj.castShadow = false;
     obj.receiveShadow = false;
     obj.frustumCulled = false;
-    const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-    obj.material = mats.map((source) => {
-      const m = source.clone();
-      const pbr = m as THREE.MeshStandardMaterial;
-      if ('envMapIntensity' in pbr) pbr.envMapIntensity = Math.max(1.25, pbr.envMapIntensity || 0);
-      if ('roughness' in pbr) pbr.roughness = Math.max(0.22, Math.min(0.72, pbr.roughness));
-      return m;
-    });
-    if (!Array.isArray(obj.material) && mats.length === 1) obj.material = mats[0]!.clone();
+    obj.material = Array.isArray(obj.material) ? obj.material.map(tuneMaterial) : tuneMaterial(obj.material);
   });
 
   root.add(scene);
@@ -129,12 +129,14 @@ function addRoleDetails(root: THREE.Group, id: ExtraWeaponId): void {
 }
 
 function disposeObject(root: THREE.Object3D): void {
+  const materials = new Set<THREE.Material>();
   root.traverse((obj) => {
     if (!(obj instanceof THREE.Mesh)) return;
     obj.geometry.dispose();
     const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-    for (const mat of mats) mat.dispose();
+    for (const mat of mats) materials.add(mat);
   });
+  for (const mat of materials) mat.dispose();
 }
 
 function setOriginalsAttached(state: PatchedRig, attached: boolean): void {
