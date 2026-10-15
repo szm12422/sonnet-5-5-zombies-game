@@ -10,19 +10,76 @@ export interface ExternalWeaponAssetSpec {
   targetLength: number;
   rearZ: number;
   topY: number;
+  adsPush: number;
+  adsScale: number;
+  reloadPush: number;
   family: 'rifle' | 'pistol' | 'shotgun';
 }
 
 /**
  * All five models originate from the same CC0 Quaternius Toon Shooter Game Kit export set.
  * The build script pins and integrity-checks the source files before Vite packages them.
+ *
+ * `rearZ` deliberately stays close to the sight origin. The original procedural rigs apply
+ * non-uniform style scaling to extended weapons, so the runtime layer compensates that parent
+ * scale and then applies a dedicated ADS/reload clearance profile to the external model only.
  */
 export const EXTERNAL_WEAPON_ASSETS: readonly ExternalWeaponAssetSpec[] = [
-  { id: 'smg', file: 'kx9-smg.glb', targetLength: 0.62, rearZ: 0.14, topY: 0.018, family: 'rifle' },
-  { id: 'lmg', file: 'mg46-lmg.glb', targetLength: 0.9, rearZ: 0.2, topY: 0.018, family: 'rifle' },
-  { id: 'dmr', file: 'mr14-dmr.glb', targetLength: 0.96, rearZ: 0.2, topY: 0.034, family: 'rifle' },
-  { id: 'magnum', file: 'hx44-magnum.glb', targetLength: 0.43, rearZ: 0.095, topY: 0.012, family: 'pistol' },
-  { id: 'autoshotgun', file: 'sg12-autoshotgun.glb', targetLength: 0.88, rearZ: 0.18, topY: 0.015, family: 'shotgun' },
+  {
+    id: 'smg',
+    file: 'kx9-smg.glb',
+    targetLength: 0.58,
+    rearZ: 0.065,
+    topY: 0.014,
+    adsPush: 0.13,
+    adsScale: 0.94,
+    reloadPush: 0.065,
+    family: 'rifle',
+  },
+  {
+    id: 'lmg',
+    file: 'mg46-lmg.glb',
+    targetLength: 0.82,
+    rearZ: 0.075,
+    topY: 0.014,
+    adsPush: 0.18,
+    adsScale: 0.91,
+    reloadPush: 0.09,
+    family: 'rifle',
+  },
+  {
+    id: 'dmr',
+    file: 'mr14-dmr.glb',
+    targetLength: 0.88,
+    rearZ: 0.07,
+    topY: 0.026,
+    adsPush: 0.21,
+    adsScale: 0.9,
+    reloadPush: 0.08,
+    family: 'rifle',
+  },
+  {
+    id: 'magnum',
+    file: 'hx44-magnum.glb',
+    targetLength: 0.38,
+    rearZ: 0.035,
+    topY: 0.01,
+    adsPush: 0.125,
+    adsScale: 0.92,
+    reloadPush: 0.06,
+    family: 'pistol',
+  },
+  {
+    id: 'autoshotgun',
+    file: 'sg12-autoshotgun.glb',
+    targetLength: 0.82,
+    rearZ: 0.075,
+    topY: 0.014,
+    adsPush: 0.16,
+    adsScale: 0.93,
+    reloadPush: 0.09,
+    family: 'shotgun',
+  },
 ] as const;
 
 export function externalWeaponAssetUrl(file: string, base = import.meta.env.BASE_URL): string {
@@ -41,6 +98,7 @@ type PatchedRig = {
   originals: THREE.Object3D[];
   originalUpdate: (pose: ViewmodelPose, dt: number) => void;
   assets: Map<ExtraWeaponId, THREE.Group>;
+  specs: Map<ExtraWeaponId, ExternalWeaponAssetSpec>;
 };
 
 export interface ExternalViewmodelHandle {
@@ -48,11 +106,26 @@ export interface ExternalViewmodelHandle {
   dispose(): void;
 }
 
+const GUNMETAL = new THREE.Color(0x263039);
+
 function tuneMaterial(source: THREE.Material): THREE.Material {
   const m = source.clone();
   const pbr = m as THREE.MeshStandardMaterial;
-  if ('envMapIntensity' in pbr) pbr.envMapIntensity = Math.max(1.25, pbr.envMapIntensity || 0);
-  if ('roughness' in pbr) pbr.roughness = Math.max(0.22, Math.min(0.72, pbr.roughness));
+
+  if ('color' in pbr && pbr.color instanceof THREE.Color) {
+    const c = pbr.color;
+    const luma = c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722;
+    const gunmetalMix = luma > 0.62 ? 0.48 : luma > 0.38 ? 0.34 : 0.18;
+    c.lerp(GUNMETAL, gunmetalMix);
+    if (luma > 0.62) c.multiplyScalar(0.82);
+  }
+  if ('envMapIntensity' in pbr) pbr.envMapIntensity = Math.max(1.2, pbr.envMapIntensity || 0);
+  if ('roughness' in pbr && typeof pbr.roughness === 'number') {
+    pbr.roughness = THREE.MathUtils.clamp(pbr.roughness, 0.3, 0.62);
+  }
+  if ('metalness' in pbr && typeof pbr.metalness === 'number') {
+    pbr.metalness = THREE.MathUtils.clamp(pbr.metalness + 0.08, 0.26, 0.82);
+  }
   return m;
 }
 
@@ -96,7 +169,13 @@ function detailMaterial(color: number, metalness: number, roughness: number): TH
   return new THREE.MeshStandardMaterial({ color, metalness, roughness, envMapIntensity: 1.45, dithering: true });
 }
 
-function addBox(root: THREE.Group, material: THREE.Material, size: [number, number, number], pos: [number, number, number], rotZ = 0): THREE.Mesh {
+function addBox(
+  root: THREE.Group,
+  material: THREE.Material,
+  size: [number, number, number],
+  pos: [number, number, number],
+  rotZ = 0,
+): THREE.Mesh {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
   mesh.position.set(...pos);
   mesh.rotation.z = rotZ;
@@ -149,12 +228,41 @@ function setOriginalsAttached(state: PatchedRig, attached: boolean): void {
   }
 }
 
+function reloadClearance(pose: ViewmodelPose): number {
+  if (pose.reloadPhase === 'none') return 0;
+  const t = THREE.MathUtils.clamp(pose.reloadT, 0, 1);
+  return Math.sin(Math.PI * t);
+}
+
+function applyExternalPose(
+  asset: THREE.Group,
+  spec: ExternalWeaponAssetSpec,
+  pose: ViewmodelPose,
+  parentScale: THREE.Vector3,
+): void {
+  const ads = THREE.MathUtils.clamp(pose.ads, 0, 1);
+  const reload = reloadClearance(pose);
+  const visualScale = THREE.MathUtils.lerp(1, spec.adsScale, ads) * THREE.MathUtils.lerp(1, 0.96, reload);
+
+  // The extended procedural styles already scale `gun` non-uniformly. Cancel that inherited scale for the GLB so
+  // targetLength remains an actual first-person size rather than becoming 15-20% larger on DMR/LMG/Magnum.
+  const sx = Math.max(0.001, Math.abs(parentScale.x));
+  const sy = Math.max(0.001, Math.abs(parentScale.y));
+  const sz = Math.max(0.001, Math.abs(parentScale.z));
+  asset.scale.set(visualScale / sx, visualScale / sy, visualScale / sz);
+
+  // Push the external shell forward during ADS and reload while leaving the original gun-space sight origin,
+  // hands, muzzle and eject anchors untouched. This prevents the donor stock/receiver from crossing the camera near plane.
+  const push = spec.adsPush * ads + spec.reloadPush * reload;
+  asset.position.set(0, 0, -push / sz);
+}
+
 function patchRig(game: Game, rig: RigWithGun): PatchedRig {
   // Capture the complete procedural gun, including the existing extended-weapon decorations,
   // but keep muzzle/eject anchors attached because gameplay FX depends on their transforms.
   const originals = rig.gun.children.filter((c) => c !== rig.muzzle && c !== rig.ejectPort);
   const originalUpdate = rig.update.bind(rig);
-  const state: PatchedRig = { rig, originals, originalUpdate, assets: new Map() };
+  const state: PatchedRig = { rig, originals, originalUpdate, assets: new Map(), specs: new Map() };
 
   rig.update = ((pose: ViewmodelPose, dt: number) => {
     const id = game.weapons?.carried?.id as ExtraWeaponId | undefined;
@@ -164,7 +272,14 @@ function patchRig(game: Game, rig: RigWithGun): PatchedRig {
     if (!selected) setOriginalsAttached(state, true);
     originalUpdate(pose, dt);
 
-    for (const [assetId, asset] of state.assets) asset.visible = assetId === id;
+    for (const [assetId, asset] of state.assets) {
+      const visible = assetId === id;
+      asset.visible = visible;
+      if (!visible) continue;
+      const spec = state.specs.get(assetId);
+      if (spec) applyExternalPose(asset, spec, pose, state.rig.gun.scale);
+    }
+
     // When the GLB is ready, remove only the procedural visual children after the rig has updated.
     // Hands, muzzle/eject anchors and all weapon-state/reload logic continue running unchanged.
     if (selected) setOriginalsAttached(state, false);
@@ -198,8 +313,10 @@ export function installExternalWeaponViewmodels(game: Game): ExternalViewmodelHa
         return;
       }
       const root = normalizeModel(gltf.scene, spec);
-      states[spec.family].assets.set(spec.id, root);
-      states[spec.family].rig.gun.add(root);
+      const state = states[spec.family];
+      state.assets.set(spec.id, root);
+      state.specs.set(spec.id, spec);
+      state.rig.gun.add(root);
       console.info(`[weapon-viewmodel] loaded ${spec.id} from ${spec.file}`);
     } catch (error) {
       // Deliberately non-fatal: the authored procedural model remains the fallback.
@@ -222,6 +339,7 @@ export function installExternalWeaponViewmodels(game: Game): ExternalViewmodelHa
           disposeObject(asset);
         }
         state.assets.clear();
+        state.specs.clear();
       }
     },
   };

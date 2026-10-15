@@ -8,12 +8,19 @@ describe('external weapon viewmodels', () => {
     expect(new Set(EXTERNAL_WEAPON_ASSETS.map((a) => a.file)).size).toBe(EXTERNAL_WEAPON_ASSETS.length);
   });
 
-  it('uses bounded first-person dimensions', () => {
+  it('uses bounded first-person dimensions and camera clearance', () => {
     for (const asset of EXTERNAL_WEAPON_ASSETS) {
-      expect(asset.targetLength).toBeGreaterThan(0.35);
-      expect(asset.targetLength).toBeLessThanOrEqual(1.05);
+      expect(asset.targetLength).toBeGreaterThan(0.3);
+      expect(asset.targetLength).toBeLessThanOrEqual(0.9);
       expect(asset.rearZ).toBeGreaterThan(0);
+      expect(asset.rearZ).toBeLessThanOrEqual(0.08);
       expect(asset.topY).toBeGreaterThanOrEqual(0);
+      expect(asset.adsPush).toBeGreaterThanOrEqual(0.12);
+      expect(asset.adsPush).toBeLessThanOrEqual(0.22);
+      expect(asset.adsScale).toBeGreaterThanOrEqual(0.88);
+      expect(asset.adsScale).toBeLessThanOrEqual(0.96);
+      expect(asset.reloadPush).toBeGreaterThan(0);
+      expect(asset.reloadPush).toBeLessThanOrEqual(0.1);
     }
   });
 
