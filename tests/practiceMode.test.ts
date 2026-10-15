@@ -24,9 +24,11 @@ describe('practice mode', () => {
 
   it('can freely replace the active slot with any practice weapon', () => {
     const inv = createInventory();
+    const vitals = { health: PLAYER.maxHealth, armor: PLAYER.maxArmor };
     inv.activeSlot = 0;
     for (const id of PRACTICE_WEAPON_IDS) {
       equipPracticeWeapon(inv, id);
+      refillPracticeSupplies(inv, vitals);
       expect(inv.slots[0]?.id).toBe(id);
       expect(inv.slots[0]?.ammo.mag).toBe(inv.slots[0]?.ammo.magSize);
       expect(inv.slots[0]?.ammo.reserve).toBe(inv.slots[0]?.ammo.reserveMax);
